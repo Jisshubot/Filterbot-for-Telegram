@@ -4,6 +4,7 @@ import bot from "../config/bot.js";
 import allButtons from "../config/allButtons.js";
 import generateInlineKeyboards from "./generateInlineKeyboards.js";
 
+// Function to fetch all files from the specified channels
 const allFiles = async (channels) => {
   let data = [];
 
@@ -23,6 +24,7 @@ const allFiles = async (channels) => {
   return data;
 };
 
+// Function to search files using Fuse.js
 const searchFromFiles = (query, data) => {
   const option = {
     keys: ["caption"],
@@ -35,6 +37,7 @@ const searchFromFiles = (query, data) => {
   return filteredData.map((d) => d.item);
 };
 
+// Function to split a list into chunks of a specified size
 const splitList = (list, index) => {
   const result = [];
   for (let i = 0; i < list.length; i += index) {
@@ -43,6 +46,18 @@ const splitList = (list, index) => {
   return result;
 };
 
+// Function to schedule the deletion of a message after a delay
+async function autoDeleteMessage(chatId, messageId, delay) {
+  setTimeout(async () => {
+    try {
+      await bot.deleteMessage(chatId, messageId);
+    } catch (error) {
+      console.error(`Failed to delete message ${messageId} in chat ${chatId}:`, error);
+    }
+  }, delay);
+}
+
+// Function to generate buttons with auto-delete feature
 export async function generateButtons(data, query, messageId, chatId) {
   let buttons = [];
 
@@ -86,12 +101,21 @@ export async function generateButtons(data, query, messageId, chatId) {
       }
     );
 
+    // Add auto-delete for the message
+    autoDeleteMessage(chatId, messageId, 10 * 60 * 1000); // Auto-delete after 10 minutes
+
     return filteredButtons;
   } else {
-    return generateInlineKeyboards(buttons, { sendAllFileLink });
+    const buttonsWithAutoDelete = generateInlineKeyboards(buttons, { sendAllFileLink });
+
+    // Add auto-delete for the message
+    autoDeleteMessage(chatId, messageId, 10 * 60 * 1000); // Auto-delete after 10 minutes
+
+    return buttonsWithAutoDelete;
   }
 }
 
+// Function to search files and return the filtered data
 export async function searchFiles(query, channels) {
   let data = await allFiles(channels);
   let filteredData = searchFromFiles(query, data);
